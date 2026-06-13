@@ -1,10 +1,10 @@
-Importing STEP file: C:\Users\wiece\OneDrive\Desktop\FaradayX\CAD-Expert\turbines_test\bracket_example.step
-Imported object: bracket_example (Part::Feature)
+Importing STEP file: C:\Users\wiece\OneDrive\Desktop\FaradayX\CAD-Expert\turbines_test\turbine_blade_stressed.step
+Imported object: turbine_blade_stressed (Part::Feature)
 
 Geometry Verification Passed successfully!
 Shape Metrics:
-  Volume: 172.32 mm3
-  Surface Area: 202.19 mm2
-  Faces count: 10
-  Edges count: 24
-FreeCAD document saved to: C:\Users\wiece\OneDrive\Desktop\FaradayX\CAD-Expert\turbines_test\bracket_example.FCStd
+  Volume: 61875.34 mm3
+  Surface Area: 21774.70 mm2
+  Faces count: 25
+  Edges count: 66
+FreeCAD document saved to: C:\Users\wiece\OneDrive\Desktop\FaradayX\CAD-Expert\turbines_test\turbine_blade_stressed.FCStd
