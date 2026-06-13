@@ -8,11 +8,21 @@ sys.stdout = open("import_verify_log.txt", "w")
 sys.stderr = sys.stdout
 
 def run_import_and_verify():
+    # Parse CLI arguments if passed inside FreeCADCmd using --pass
+    # FreeCADCmd passes arguments after --pass
+    args = []
+    if "--pass" in sys.argv:
+        pass_idx = sys.argv.index("--pass")
+        args = sys.argv[pass_idx+1:]
+        
+    step_file_name = args[0] if len(args) > 0 else "t_slot_4040.step"
+    fcstd_file_name = args[1] if len(args) > 1 else "t_slot_4040.FCStd"
+
     # Create document
     doc = App.newDocument("CadQueryImport")
 
     # Resolve STEP file path
-    step_file_path = os.path.abspath("t_slot_4040.step")
+    step_file_path = os.path.abspath(step_file_name)
     if not os.path.exists(step_file_path):
         print(f"Error: STEP file not found at {step_file_path}")
         sys.exit(1)
@@ -53,7 +63,7 @@ def run_import_and_verify():
     print(f"  Edges count: {len(shape.Edges)}")
 
     # Save FreeCAD document
-    fcstd_path = os.path.abspath("t_slot_4040.FCStd")
+    fcstd_path = os.path.abspath(fcstd_file_name)
     doc.saveAs(fcstd_path)
     print(f"FreeCAD document saved to: {fcstd_path}")
 
