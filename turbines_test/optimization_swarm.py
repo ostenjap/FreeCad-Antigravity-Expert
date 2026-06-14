@@ -337,11 +337,23 @@ def run_swarm_pipeline():
         print(f"{RED}Swarm pipeline halted. No files written.{RESET}")
 
 if __name__ == "__main__":
-    # If interactive run, run normally, else if automated we approve programmatically to prevent hanging
-    if len(sys.argv) > 1 and sys.argv[1] == "--auto-approve":
-        # Monkey patch input to auto approve
+    # Check for auto-approve flag
+    if "--auto-approve" in sys.argv:
         print(f"{YELLOW}Running in automated verification mode (auto-approving dead man's switch)...{RESET}")
         import builtins
         builtins.input = lambda _: "yes"
-    
-    run_swarm_pipeline()
+        
+    # Check for mode flag
+    mode = "fea"
+    if "--mode" in sys.argv:
+        try:
+            mode_idx = sys.argv.index("--mode")
+            mode = sys.argv[mode_idx + 1]
+        except (ValueError, IndexError):
+            pass
+            
+    if mode in ["coupled", "cfd"]:
+        from cfd_optimization_swarm import run_coupled_swarm_pipeline
+        run_coupled_swarm_pipeline()
+    else:
+        run_swarm_pipeline()

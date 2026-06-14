@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coupled Aero-Thermal-Structural Swarm Optimization</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #080c14;
+            --card-bg: rgba(17, 24, 39, 0.6);
+            --card-border: rgba(255, 255, 255, 0.06);
+            
+            --fluid-color: #00f2fe;
+            --fluid-grad: linear-gradient(135deg, #00f2fe, #4facfe);
+            
+            --thermal-color: #f5576c;
+            --thermal-grad: linear-gradient(135deg, #f093fb, #f5576c);
+            
+            --struct-color: #38ef7d;
+            --struct-grad: linear-gradient(135deg, #11998e, #38ef7d);
+            
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(79, 172, 254, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(245, 87, 108, 0.05) 0%, transparent 40%),
+                linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            color: var(--text-primary);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Hero Header */
+        header {
+            text-align: center;
+            margin-bottom: 4rem;
+            position: relative;
+        }
+
+        .badge {
+            background: rgba(79, 172, 254, 0.1);
+            border: 1px solid rgba(79, 172, 254, 0.2);
+            color: var(--fluid-color);
+            padding: 0.4rem 1.2rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #fff 30%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .lead {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            max-width: 750px;
+            margin: 0 auto;
+        }
+
+        /* Overview Section */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        @media (min-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(12px);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: transparent;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .card-fluid::before { background: var(--fluid-grad); }
+        .card-thermal::before { background: var(--thermal-grad); }
+        .card-struct::before { background: var(--struct-grad); }
+
+        h2, h3 {
+            font-family: 'Outfit', sans-serif;
+            margin-bottom: 1rem;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            letter-spacing: -0.01em;
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Mathematical Explanations */
+        .math-box {
+            background: rgba(0, 0, 0, 0.25);
+            border-left: 3px solid var(--fluid-color);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #e2e8f0;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+        }
+        
+        .math-box-thermal { border-left-color: var(--thermal-color); }
+        .math-box-struct { border-left-color: var(--struct-color); }
+
+        /* Flow Visualizer */
+        .workflow-section {
+            margin-bottom: 4rem;
+        }
+
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .agent-node {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .agent-node .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .node-architect { background: rgba(79, 172, 254, 0.1); color: var(--fluid-color); border: 1px solid rgba(79, 172, 254, 0.2); }
+        .node-orchestrator { background: rgba(240, 147, 251, 0.1); color: #f093fb; border: 1px solid rgba(240, 147, 251, 0.2); }
+        .node-bridge { background: rgba(56, 239, 125, 0.1); color: var(--struct-color); border: 1px solid rgba(56, 239, 125, 0.2); }
+        .node-critic { background: rgba(245, 87, 108, 0.1); color: var(--thermal-color); border: 1px solid rgba(245, 87, 108, 0.2); }
+
+        .agent-node h4 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .agent-node p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Interactive Simulation Playground */
+        .playground-section {
+            background: rgba(17, 24, 39, 0.4);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2.5rem;
+            margin-bottom: 4rem;
+            backdrop-filter: blur(12px);
+        }
+
+        .playground-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 3rem;
+            margin-top: 2rem;
+        }
+
+        @media (min-width: 992px) {
+            .playground-layout {
+                grid-template-columns: 350px 1fr;
+            }
+        }
+
+        .controls-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .control-slider {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .slider-header span:first-child {
+            color: var(--text-secondary);
+        }
+
+        .slider-header span.val {
+            font-family: 'Fira Code', monospace;
+            color: var(--fluid-color);
+        }
+
+        .control-slider input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        .control-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--fluid-color);
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        .control-slider input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .thermal-slider input[type="range"]::-webkit-slider-thumb {
+            background: var(--thermal-color);
+        }
+
+        /* Viz Display Panel */
+        .viz-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        @media (min-width: 576px) {
+            .metrics-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 1.2rem;
+            text-align: center;
+        }
+
+        .metric-card .title {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-card .value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .value-good { color: var(--struct-color); }
+        .value-warn { color: #eab308; }
+        .value-danger { color: var(--thermal-color); }
+
+        /* Canvas Chart container */
+        .chart-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 1.5rem;
+            min-height: 250px;
+            position: relative;
+        }
+
+        /* Telemetry overlay labels */
+        .legend-box {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            font-size: 0.8rem;
+            margin-top: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* Section dividers */
+        hr {
+            border: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--card-border), transparent);
+            margin: 4rem 0;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 4rem;
+            padding-bottom: 2rem;
+        }
+
+        /* SVG Blade Mockup Graphic */
+        .blade-graphic-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+        }
+
+        .blade-svg {
+            max-height: 250px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="badge">Swarm Orchestration</div>
+        <h1>Multi-Physics Turbine Blade Swarm Optimization</h1>
+        <p class="lead">Understanding the automated feedback loop that optimizes external aerodynamics, conjugate heat transfer, and structural stress in a single unified pipeline.</p>
+    </header>
+
+    <!-- Core Physics Slices -->
+    <section class="grid-2">
+        <div class="card card-fluid">
+            <h2>1. Fluid Aerodynamics</h2>
+            <p>Our external aerodynamic optimizer adjusts the shape scaling factors along the blade span. A thicker shape increases lift capacity but escalates profile drag. A thinner profile reduces aerodynamic drag but weakens the structure.</p>
+            <div class="math-box">
+L_i = 0.5 * ρ_gas * W_i² * c_i * C_L(w_i)
+D_i = 0.5 * ρ_gas * W_i² * c_i * C_D(w_i)
+            </div>
+            <p>The goal is to maximize the aerodynamic lift-to-drag ratio (L/D) while ensuring sufficient air deflection to extract rotational torque.</p>
+        </div>
+
+        <div class="card card-thermal">
+            <h2>2. Conjugate Heat Transfer</h2>
+            <p>The blade surface temperature is established by CHT energy balance. High-velocity gas heat flux enters the blade shell. Heat is extracted by internal cooling air flowing through the internal lattice channels.</p>
+            <div class="math-box math-box-thermal">
+T_surface = (h_gas * T_gas + h_cool * T_cool) / (h_gas + h_cool)
+h_cool = 15000.0 * sqrt(d_i) * (1 / w_i)^0.3
+            </div>
+            <p>Increasing internal lattice density (d_i) enhances cooling capacity but adds solid mass. Decreasing external shape scale (w_i) reduces the heat transfer boundary area.</p>
+        </div>
+    </section>
+
+    <!-- Structural Section -->
+    <div class="card card-struct" style="margin-bottom: 4rem;">
+        <h2>3. Structural Mechanics & Coupled Stress Analysis</h2>
+        <p>Centrifugal stress and thermal expansion stress combine to form the total Von Mises stress. Crucially, the yield strength of Inconel 718 drops precipitously at high temperatures. The structural solver maps local CHT-derived blade temperatures to local yield capacities to check safety factors.</p>
+        <div class="math-box math-box-struct">
+σ_combined = σ_centrifugal + σ_thermal
+σ_centrifugal = Σ [m_j * ω² * r_j] / A_effective_i
+SF_i = σ_yield(T_i) / σ_combined_i
+        </div>
+        <p>A lower lattice density reduces the centrifugal force pulling from the root neck but increases the stress load area. The optimizer must dynamically balance material placement.</p>
+    </div>
+
+    <hr>
+
+    <!-- Swarm Diagram section -->
+    <section class="workflow-section">
+        <h2 style="text-align: center; margin-bottom: 2rem;">The Multi-Agent Swarm Workflow</h2>
+        <div class="workflow-grid">
+            <div class="agent-node">
+                <div class="icon node-architect">AA</div>
+                <h4>Aerodynamic Architect</h4>
+                <p>Translates instructions into gas boundary conditions, CHT targets, and objective weight configurations.</p>
+            </div>
+            <div class="agent-node">
+                <div class="icon node-orchestrator">CO</div>
+                <h4>CFD Orchestrator</h4>
+                <p>Parameterizes design profiles and executes gradient descent updates on shape scales and internal density fields.</p>
+            </div>
+            <div class="agent-node">
+                <div class="icon node-bridge">FB</div>
+                <h4>FSI Bridge</h4>
+                <p>Coordinates partitioned coupling, mapping CFD surface temperatures and pressure vectors to FEA loads.</p>
+            </div>
+            <div class="agent-node">
+                <div class="icon node-critic">TC</div>
+                <h4>Thermal Critic</h4>
+                <p>Monitors limits. Automatically penalizes violations (temperature creep or aerodynamic slip) and triggers retraining.</p>
+            </div>
+        </div>
+    </section>
+
+    <hr>
+
+    <!-- Interactive Simulation Playground -->
+    <section class="playground-section">
+        <h2 style="text-align: center; margin-bottom: 0.5rem;">Interactive Optimization Playground</h2>
+        <p style="text-align: center; color: var(--text-secondary); margin-bottom: 2rem; font-size: 0.95rem;">Manually adjust the blade parameters to simulate how the physical fields respond. Notice how the trade-offs interact!</p>
+        
+        <div class="playground-layout">
+            <div class="controls-group">
+                <h3>Design Variables</h3>
+                
+                <div class="control-slider">
+                    <div class="slider-header">
+                        <span>External Scale (Root)</span>
+                        <span class="val" id="val-scale-root">1.0</span>
+                    </div>
+                    <input type="range" id="scale-root" min="0.4" max="1.5" step="0.05" value="1.0">
+                </div>
+
+                <div class="control-slider">
+                    <div class="slider-header">
+                        <span>External Scale (Tip)</span>
+                        <span class="val" id="val-scale-tip">1.0</span>
+                    </div>
+                    <input type="range" id="scale-tip" min="0.4" max="1.5" step="0.05" value="1.0">
+                </div>
+
+                <div class="control-slider thermal-slider">
+                    <div class="slider-header">
+                        <span>Internal Density (Root)</span>
+                        <span class="val" id="val-density-root">0.8</span>
+                    </div>
+                    <input type="range" id="density-root" min="0.4" max="1.0" step="0.05" value="0.8">
+                </div>
+
+                <div class="control-slider thermal-slider">
+                    <div class="slider-header">
+                        <span>Internal Density (Tip)</span>
+                        <span class="val" id="val-density-tip">0.8</span>
+                    </div>
+                    <input type="range" id="density-tip" min="0.4" max="1.0" step="0.05" value="0.8">
+                </div>
+                
+                <div style="margin-top: 1rem;" class="blade-graphic-box">
+                    <svg class="blade-svg" viewBox="0 0 100 220" width="100%" height="220">
+                        <!-- Background guides -->
+                        <line x1="50" y1="20" x2="50" y2="200" stroke="rgba(255,255,255,0.05)" stroke-dasharray="4,4"/>
+                        <!-- Outer Blade skin -->
+                        <path id="blade-skin" d="M 40 200 Q 30 110 42 20 Q 58 20 62 110 Q 50 200 40 200 Z" fill="rgba(0, 242, 254, 0.15)" stroke="var(--fluid-color)" stroke-width="2"/>
+                        <!-- Internal Lattice indication -->
+                        <path id="blade-core" d="M 42 195 Q 33 110 44 25 Q 56 25 60 110 Q 48 195 42 195 Z" fill="rgba(56, 239, 125, 0.2)" stroke="var(--struct-color)" stroke-width="1" stroke-dasharray="2,2"/>
+                        <text x="50" y="215" fill="var(--text-muted)" font-size="10" text-anchor="middle">Z-Span (120mm)</text>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="viz-panel">
+                <h3>Coupled Physics Output</h3>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="title">Mass Saving</div>
+                        <div class="value value-good" id="out-mass">0.0%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="title">Aero Efficiency (L/D)</div>
+                        <div class="value" id="out-aero">111.7</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="title">Peak Temperature</div>
+                        <div class="value" id="out-temp">731.2°C</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="title">Min Safety Factor</div>
+                        <div class="value" id="out-sf">0.52</div>
+                    </div>
+                </div>
+
+                <div class="chart-box">
+                    <svg id="chart-svg" width="100%" height="240" viewBox="0 0 500 240" style="overflow: visible;">
+                        <!-- Grid lines -->
+                        <line x1="50" y1="30" x2="450" y2="30" stroke="rgba(255,255,255,0.05)"/>
+                        <line x1="50" y1="120" x2="450" y2="120" stroke="rgba(255,255,255,0.05)"/>
+                        <line x1="50" y1="210" x2="450" y2="210" stroke="rgba(255,255,255,0.1)"/>
+                        <line x1="50" y1="30" x2="50" y2="210" stroke="rgba(255,255,255,0.1)"/>
+                        <line x1="450" y1="30" x2="450" y2="210" stroke="rgba(255,255,255,0.05)"/>
+                        
+                        <!-- Axis Labels -->
+                        <text x="35" y="35" fill="var(--text-muted)" font-size="10" text-anchor="end">Tip</text>
+                        <text x="35" y="125" fill="var(--text-muted)" font-size="10" text-anchor="end">Mid</text>
+                        <text x="35" y="215" fill="var(--text-muted)" font-size="10" text-anchor="end">Root</text>
+                        
+                        <text x="250" y="235" fill="var(--text-muted)" font-size="11" text-anchor="middle">Normalised Span (Z-Height)</text>
+
+                        <!-- Plot Paths -->
+                        <path id="plot-temp" d="" fill="none" stroke="var(--thermal-color)" stroke-width="3"/>
+                        <path id="plot-sf" d="" fill="none" stroke="var(--struct-color)" stroke-width="3"/>
+                    </svg>
+
+                    <div class="legend-box">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: var(--thermal-color);"></div>
+                            <span>Temperature (°C)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: var(--struct-color);"></div>
+                            <span>Safety Factor (SF)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>Aero-Thermal-Structural Swarm Optimization — Multi-Agent Engineering Sandbox</p>
+    </footer>
+</div>
+
+<script>
+    // Elements
+    const scaleRootInput = document.getElementById('scale-root');
+    const scaleTipInput = document.getElementById('scale-tip');
+    const densityRootInput = document.getElementById('density-root');
+    const densityTipInput = document.getElementById('density-tip');
+
+    const valScaleRoot = document.getElementById('val-scale-root');
+    const valScaleTip = document.getElementById('val-scale-tip');
+    const valDensityRoot = document.getElementById('val-density-root');
+    const valDensityTip = document.getElementById('val-density-tip');
+
+    const outMass = document.getElementById('out-mass');
+    const outAero = document.getElementById('out-aero');
+    const outTemp = document.getElementById('out-temp');
+    const outSf = document.getElementById('out-sf');
+
+    const bladeSkin = document.getElementById('blade-skin');
+    const bladeCore = document.getElementById('blade-core');
+    const plotTemp = document.getElementById('plot-temp');
+    const plotSf = document.getElementById('plot-sf');
+
+    // Nominal values
+    const numSlices = 24;
+    const height = 120.0;
+    const rHub = 200.0;
+    const rpm = 30000.0;
+    const omega = (rpm * 2 * Math.PI) / 60.0;
+    const densityInconel = 8190.0 / 1e9; // kg/mm^3
+    const tCoolant = 400.0;
+    const tGas = 1000.0;
+
+    // Nominal slice areas (approximate parabolic shape)
+    const nominalAreas = [];
+    for(let i=0; i<numSlices; i++) {
+        let z = (height / (numSlices - 1)) * i;
+        let scale = (z <= 60.0) ? (40.0 - (10.0 / 60.0) * z) : (30.0 - (10.0 / 60.0) * (z - 60.0));
+        nominalAreas.push(0.046 * (scale * scale));
+    }
+
+    // Get interpolated profiles based on root/tip sliders
+    function getInterpolatedProfile(rootVal, tipVal) {
+        const profile = [];
+        for(let i=0; i<numSlices; i++) {
+            let t = i / (numSlices - 1);
+            profile.push(rootVal + (tipVal - rootVal) * t);
+        }
+        return profile;
+    }
+
+    function calculatePhysics() {
+        // Read input states
+        const scaleRoot = parseFloat(scaleRootInput.value);
+        const scaleTip = parseFloat(scaleTipInput.value);
+        const densityRoot = parseFloat(densityRootInput.value);
+        const densityTip = parseFloat(densityTipInput.value);
+
+        // Update labels
+        valScaleRoot.textContent = scaleRoot.toFixed(2);
+        valScaleTip.textContent = scaleTip.toFixed(2);
+        valDensityRoot.textContent = densityRoot.toFixed(2);
+        valDensityTip.textContent = densityTip.toFixed(2);
+
+        // Interpolated profiles
+        const shapeScales = getInterpolatedProfile(scaleRoot, scaleTip);
+        const densities = getInterpolatedProfile(densityRoot, densityTip);
+
+        // Calculate CFD and CHT
+        let liftForces = [];
+        let dragForces = [];
+        let temperatures = [];
+        
+        for(let i=0; i<numSlices; i++) {
+            let z = (height / (numSlices - 1)) * i;
+            let r = (rHub + z) / 1000.0;
+            let U = omega * r;
+            let W = Math.sqrt(150.0*150.0 + U*U);
+            
+            let c_nom = 40.0 - (20.0 / height) * z;
+            let c = c_nom * shapeScales[i];
+            let alpha = (12.0 - (8.0 / height) * z) * Math.PI / 180.0;
+            
+            let CL = 2.0 * Math.PI * Math.sin(alpha) * (1.0 + 0.15 * (shapeScales[i] - 1.0));
+            let thickness_ratio = 0.15 * shapeScales[i];
+            let CD = 0.006 + 0.07 * (thickness_ratio * thickness_ratio) * (1.0 + 3.0 * Math.sin(alpha) * Math.sin(alpha));
+            
+            liftForces.push(0.5 * 4.5 * (W*W) * (c / 1000.0) * CL);
+            dragForces.push(0.5 * 4.5 * (W*W) * (c / 1000.0) * CD);
+            
+            // CHT
+            let Re = 4.5 * W * (c / 1000.0) / 1.8e-5;
+            let Nu = 0.023 * Math.pow(Re, 0.8) * Math.pow(0.7, 0.4);
+            let hGas = Nu * 0.08 / (c / 1000.0);
+            
+            let hCool = 15000.0 * Math.sqrt(densities[i]) * Math.pow((1.0 / shapeScales[i]), 0.3);
+            let tSurf = (hGas * tGas + hCool * tCoolant) / (hGas + hCool);
+            temperatures.push(tSurf);
+        }
+
+        const sumLift = liftForces.reduce((a,b)=>a+b, 0);
+        const sumDrag = dragForces.reduce((a,b)=>a+b, 0);
+        const avgLD = sumLift / sumDrag;
+
+        // Calculate FEA Stresses and Mass
+        const dz = height / numSlices;
+        let currentMass = 0;
+        let nominalMass = 0;
+        let effectiveAreas = [];
+        
+        for(let i=0; i<numSlices; i++) {
+            effectiveAreas.push(nominalAreas[i] * (shapeScales[i]*shapeScales[i]) * densities[i]);
+            currentMass += densityInconel * effectiveAreas[i] * dz;
+            nominalMass += densityInconel * nominalAreas[i] * dz;
+        }
+
+        const massSavings = (1.0 - currentMass / nominalMass) * 100;
+
+        // Centrifugal force / stress
+        let centrifugalStresses = [];
+        for(let i=0; i<numSlices; i++) {
+            let force = 0;
+            for(let j=i; j<numSlices; j++) {
+                let z = (height / (numSlices - 1)) * j;
+                let r = (rHub + z) / 1000.0;
+                let m_j = densityInconel * effectiveAreas[j] * dz;
+                force += m_j * (omega*omega) * r;
+            }
+            centrifugalStresses.push(effectiveAreas[i] > 0 ? (force / effectiveAreas[i]) : 0);
+        }
+
+        // Combined stresses and Safety Factors
+        let safetyFactors = [];
+        let minSf = 999;
+        
+        for(let i=0; i<numSlices; i++) {
+            let temp = temperatures[i];
+            let E = (200.0 - 0.08 * temp) * 1000.0;
+            let alpha_th = (13.0 + 0.003 * temp) * 1e-6;
+            let sigmaYield = (temp <= 600.0) ? (1030.0 - 0.22*temp) : (900.0 - 1.875 * (temp - 600.0));
+            
+            let thermalStress = 0.12 * E * alpha_th * Math.abs(temp - 400.0);
+            let combinedStress = centrifugalStresses[i] + thermalStress;
+            
+            let sf = combinedStress > 0 ? (sigmaYield / combinedStress) : 999.0;
+            safetyFactors.push(sf);
+            if(sf < minSf) minSf = sf;
+        }
+
+        // Update UI Outputs
+        outMass.textContent = (massSavings > 0 ? "" : "-") + Math.abs(massSavings).toFixed(1) + "%";
+        if(massSavings >= 20.0) {
+            outMass.className = "value value-good";
+        } else if (massSavings >= 0) {
+            outMass.className = "value";
+        } else {
+            outMass.className = "value value-danger"; // negative mass savings (heavier)
+        }
+
+        outAero.textContent = avgLD.toFixed(1);
+        outAero.className = (avgLD >= 75.0) ? "value value-good" : "value value-danger";
+
+        const maxTemp = Math.max(...temperatures);
+        outTemp.textContent = maxTemp.toFixed(1) + "°C";
+        outTemp.className = (maxTemp <= 900.0) ? "value value-good" : "value value-danger";
+
+        outSf.textContent = minSf.toFixed(2);
+        outSf.className = (minSf >= 0.5) ? "value value-good" : "value value-danger";
+
+        // SVG Visual scale adjustments
+        let rScale = scaleRoot * 20;
+        let tScale = scaleTip * 10;
+        let coreR = rScale * densityRoot;
+        let coreT = tScale * densityTip;
+        
+        bladeSkin.setAttribute('d', `M ${50 - rScale} 200 Q ${45 - rScale} 110 ${50 - tScale} 20 Q ${50 + tScale} 20 ${55 + tScale} 110 Q ${50 + rScale} 200 ${50 - rScale} 200 Z`);
+        bladeCore.setAttribute('d', `M ${50 - coreR} 195 Q ${46 - coreR} 110 ${50 - coreT} 25 Q ${50 + coreT} 25 ${54 + coreT} 110 Q ${50 + coreR} 195 ${50 - coreR} 195 Z`);
+
+        // Draw Chart (Map array items to SVG coords)
+        const svgW = 400; // inner width of graph (50 to 450)
+        const svgH = 180; // inner height of graph (30 to 210)
+        
+        let tempPoints = [];
+        let sfPoints = [];
+        
+        for(let i=0; i<numSlices; i++) {
+            let x = 50 + (i / (numSlices - 1)) * svgW;
+            
+            // Normalize temp: 500C (bottom/210px) to 1000C (top/30px)
+            let tNorm = (temperatures[i] - 500) / 500;
+            let yTemp = 210 - tNorm * svgH;
+            tempPoints.push(`${x},${yTemp}`);
+            
+            // Normalize safety factor: 0.0 (bottom/210px) to 3.0 (top/30px)
+            let sfNorm = safetyFactors[i] / 3.0;
+            let ySf = 210 - sfNorm * svgH;
+            sfPoints.push(`${x},${ySf}`);
+        }
+        
+        plotTemp.setAttribute('d', 'M ' + tempPoints.join(' L '));
+        plotSf.setAttribute('d', 'M ' + sfPoints.join(' L '));
+    }
+
+    // Event listeners
+    scaleRootInput.addEventListener('input', calculatePhysics);
+    scaleTipInput.addEventListener('input', calculatePhysics);
+    densityRootInput.addEventListener('input', calculatePhysics);
+    densityTipInput.addEventListener('input', calculatePhysics);
+
+    // Initial Run
+    calculatePhysics();
+</script>
+
+</body>
+</html>

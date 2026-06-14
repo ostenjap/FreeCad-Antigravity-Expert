@@ -122,26 +122,35 @@ class TurbineBladeFEASolver:
         area_est = 0.046 * (scale ** 2)
         return area_est
 
-    def solve_stresses(self, relative_density_profile=None, num_slices=24):
+    def solve_stresses(self, relative_density_profile=None, num_slices=24, shape_scale_profile=None, temperatures=None):
         """
         Calculates stresses along the blade span.
         
         Args:
             relative_density_profile: Array of size num_slices containing values in [0.4, 1.0].
                                       Represents the lattice density fraction (topology state).
+            shape_scale_profile: Array of size num_slices containing values in [0.4, 1.5].
+                                 Represents external airfoil scale factor.
+            temperatures: Optional array of temperatures at each slice from CFD/CHT.
         """
-        z_coords, areas, temps = self.analyze_slices(num_slices)
+        z_coords, areas, default_temps = self.analyze_slices(num_slices)
         n = len(z_coords)
         dz = z_coords[1] - z_coords[0] if n > 1 else 1.0
         
         if relative_density_profile is None:
             relative_density_profile = np.ones(n)
             
-        # Ensure bounds on relative density
-        relative_density_profile = np.clip(relative_density_profile, 0.4, 1.0)
+        if shape_scale_profile is None:
+            shape_scale_profile = np.ones(n)
+            
+        temps = temperatures if temperatures is not None else default_temps
         
-        # Effective areas and mass distribution
-        effective_areas = areas * relative_density_profile
+        # Ensure bounds on relative density and shape scale
+        relative_density_profile = np.clip(relative_density_profile, 0.4, 1.0)
+        shape_scale_profile = np.clip(shape_scale_profile, 0.4, 1.5)
+        
+        # Effective areas and mass distribution (area scales as shape_scale^2)
+        effective_areas = areas * (shape_scale_profile ** 2) * relative_density_profile
         effective_masses = self.density * effective_areas * dz
         
         # 1. Centrifugal Stress:
