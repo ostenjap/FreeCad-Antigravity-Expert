@@ -1,0 +1,25 @@
+{
+  "generated_at": "2026-06-14T18:25:19.049019",
+  "cadquery_version": "2.7.0",
+  "n_blades": 5,
+  "diameter_mm": 254.0,
+  "hub_radius_mm": 12.0,
+  "chord_root_mm": 28.0,
+  "chord_tip_mm": 10.0,
+  "twist_root_deg": 35.0,
+  "twist_tip_deg": 12.0,
+  "tubercle_amplitude_mm": 3.0,
+  "tubercle_wavelength_mm": 40.0,
+  "n_loft_sections": 16,
+  "estimated_mass_g": 34.5,
+  "material": {
+    "name": "CF-PA6 30wt%",
+    "E_Pa": 30000000000.0,
+    "nu": 0.35,
+    "density_kg_m3": 1300,
+    "tensile_MPa": 200,
+    "yield_MPa": 150,
+    "max_temp_C": 120
+  },
+  "step_file": "quadcopter\\cad\\propeller_5blade_tubercle_20260614_182517.step"
+}

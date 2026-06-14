@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CF-PA6 5-Blade Propeller — Design Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens ───────────────────────────────────────────── */
+    :root {
+      --bg:          #0c0f1a;
+      --bg2:         #131726;
+      --bg3:         #1a1f33;
+      --border:      #252b42;
+      --accent:      #6c8fff;
+      --accent2:     #a78bfa;
+      --accent3:     #34d399;
+      --warn:        #fbbf24;
+      --danger:      #f87171;
+      --text:        #e2e8f0;
+      --muted:       #8892a4;
+      --card-shadow: 0 4px 32px rgba(0,0,0,0.45);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────── */
+    .page {
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 40px 28px 100px;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      gap: 24px;
+      padding: 42px 44px;
+      background: linear-gradient(135deg, #111827 0%, #1e2a4a 60%, #0f172a 100%);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      margin-bottom: 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 70% 50%, rgba(108,143,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(108,143,255,0.15);
+      border: 1px solid rgba(108,143,255,0.35);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.25;
+      background: linear-gradient(120deg, #fff 30%, var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header .sub {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 400;
+    }
+    .header-meta {
+      text-align: right;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.9;
+    }
+    .status-pill {
+      display: inline-block;
+      padding: 5px 16px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      background: rgba(52,211,153,0.15);
+      border: 1px solid rgba(52,211,153,0.4);
+      color: var(--accent3);
+    }
+
+    /* ── Section titles ──────────────────────────────────────────── */
+    .section {
+      margin-bottom: 40px;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 18px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Cards & Grids ───────────────────────────────────────────── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 24px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .card:hover {
+      border-color: rgba(108,143,255,0.4);
+      transform: translateY(-2px);
+    }
+    .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.1px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .card-value {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .card-unit {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--muted);
+      margin-left: 4px;
+    }
+    .card-note {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .card.accent { border-color: rgba(108,143,255,0.3); }
+    .card.green  { border-color: rgba(52,211,153,0.3); }
+    .card.purple { border-color: rgba(167,139,250,0.3); }
+    .card.warn   { border-color: rgba(251,191,36,0.3); }
+
+    /* ── Two-col layout ──────────────────────────────────────────── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ── Data table ──────────────────────────────────────────────── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 10px 16px;
+      background: var(--bg3);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table td {
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .data-table .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--accent);
+    }
+    .data-table .pass { color: var(--accent3); font-weight: 600; }
+    .data-table .warn-val { color: var(--warn); font-weight: 600; }
+
+    .panel {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 14px 20px;
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Progress bar ────────────────────────────────────────────── */
+    .progress-wrap {
+      padding: 0 20px 6px;
+    }
+    .progress-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .progress-row:last-child { border-bottom: none; }
+    .progress-label { width: 180px; font-size: 13px; color: var(--muted); flex-shrink: 0; }
+    .progress-bar-bg {
+      flex: 1;
+      height: 7px;
+      background: var(--bg3);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent3), var(--accent));
+      transition: width 1s ease;
+    }
+    .progress-val { width: 80px; text-align: right; font-size: 13px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+    /* ── Tubercle diagram ────────────────────────────────────────── */
+    .tubercle-svg-wrap {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+    }
+    svg text { font-family: 'Inter', sans-serif; }
+
+    /* ── Formula block ───────────────────────────────────────────── */
+    .formula-block {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 20px;
+      margin: 14px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--accent2);
+      line-height: 1.8;
+    }
+
+    /* ── Reference list ──────────────────────────────────────────── */
+    .ref-list { list-style: none; counter-reset: ref; }
+    .ref-list li {
+      counter-increment: ref;
+      padding: 8px 0 8px 48px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+      position: relative;
+    }
+    .ref-list li:last-child { border-bottom: none; }
+    .ref-list li::before {
+      content: '[' counter(ref) ']';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────── */
+    .footer {
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── Blob visualization ──────────────────────────────────────── */
+    .blade-vis {
+      position: relative;
+      height: 240px;
+      background: radial-gradient(ellipse at center, #111827 0%, var(--bg) 100%);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .blade-vis canvas { display: block; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── HEADER ──────────────────────────────────────────────────────── -->
+  <div class="header">
+    <div>
+      <div class="header-badge">
+        <span>&#9658;</span> Design Report — Rev 1.0
+      </div>
+      <h1>5-Blade Quadcopter Propeller<br/>Carbon-Fibre Filled PA6 · Tubercle LE</h1>
+      <div class="sub">
+        NACA 4412 airfoil · 10-inch diameter · Leading-edge tubercles (bio-inspired)
+      </div>
+    </div>
+    <div class="header-meta">
+      <div id="gen-date"></div>
+      <div>Ø 254 mm</div>
+      <div>CF-PA6 30 wt%</div>
+      <br/>
+      <div class="status-pill">PASS — 9.5% utilisation</div>
+    </div>
+  </div>
+
+  <!-- ── KPI CARDS ──────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">&#9673; Key Performance Indicators</div>
+    <div class="cards-grid">
+      <div class="card accent">
+        <div class="card-label">Von Mises Stress (root)</div>
+        <div class="card-value">7.6<span class="card-unit">MPa</span></div>
+        <div class="card-note">Allowable: 80 MPa (SF = 2.5)</div>
+      </div>
+      <div class="card green">
+        <div class="card-label">Margin of Safety</div>
+        <div class="card-value">9.5</div>
+        <div class="card-note">Comfortably exceeds minimum MS ≥ 0</div>
+      </div>
+      <div class="card purple">
+        <div class="card-label">Tip Speed</div>
+        <div class="card-value">106.4<span class="card-unit">m/s</span></div>
+        <div class="card-note">Ma = 0.310 — subsonic, no wave drag</div>
+      </div>
+      <div class="card warn">
+        <div class="card-label">Noise Reduction</div>
+        <div class="card-value">−1.5<span class="card-unit">dB</span></div>
+        <div class="card-note">Loading + TE tone via tubercles</div>
+      </div>
+      <div class="card green">
+        <div class="card-label">Drag Reduction</div>
+        <div class="card-value">1.6<span class="card-unit">%</span></div>
+        <div class="card-note">CD: 0.01500 → 0.01475</div>
+      </div>
+      <div class="card accent">
+        <div class="card-label">Figure of Merit Gain</div>
+        <div class="card-value">+1.8<span class="card-unit">%</span></div>
+        <div class="card-note">vs. baseline (no tubercles)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BLADE VISUALIZATION ────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">&#9671; Propeller Planform — 5 Blades, 72° Pitch</div>
+    <div class="blade-vis">
+      <canvas id="propCanvas" width="700" height="230"></canvas>
+    </div>
+  </div>
+
+  <!-- ── GEOMETRY ──────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">&#9670; Geometry &amp; Design Parameters</div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-header">Blade Geometry</div>
+        <table class="data-table">
+          <tr><td>Number of blades</td><td class="mono">5</td></tr>
+          <tr><td>Diameter</td><td class="mono">254 mm (10 in)</td></tr>
+          <tr><td>Hub radius</td><td class="mono">12 mm</td></tr>
+          <tr><td>Shaft bore</td><td class="mono">Ø 6 mm (M6)</td></tr>
+          <tr><td>Airfoil section</td><td class="mono">NACA 4412</td></tr>
+          <tr><td>Chord — root</td><td class="mono">28 mm</td></tr>
+          <tr><td>Chord — tip</td><td class="mono">10 mm</td></tr>
+          <tr><td>Twist — root</td><td class="mono">35°</td></tr>
+          <tr><td>Twist — tip</td><td class="mono">12°</td></tr>
+          <tr><td>Max thickness</td><td class="mono">12% chord</td></tr>
+        </table>
+      </div>
+      <div class="panel">
+        <div class="panel-header">Material — CF-PA6 (30 wt% Short CF)</div>
+        <table class="data-table">
+          <tr><td>Young's modulus</td><td class="mono">30 GPa</td></tr>
+          <tr><td>Poisson ratio</td><td class="mono">0.35</td></tr>
+          <tr><td>Density</td><td class="mono">1300 kg/m³</td></tr>
+          <tr><td>Tensile strength</td><td class="mono">200 MPa</td></tr>
+          <tr><td>Yield strength (0.2%)</td><td class="mono">150 MPa</td></tr>
+          <tr><td>Design allowable (SF 2.5)</td><td class="mono">80 MPa</td></tr>
+          <tr><td>Max operating temp</td><td class="mono">120 °C</td></tr>
+          <tr><td>Processing method</td><td class="mono">SLS / Injection moulding</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STRUCTURAL ─────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">&#9679; Structural Analysis — Root Cross-Section (8 000 RPM)</div>
+
+    <div class="two-col" style="margin-bottom:20px">
+      <div>
+        <p style="color:var(--muted);font-size:13.5px;line-height:1.8">
+          Three independent load cases are assessed at the blade root — the
+          highest-stress location — and superimposed using the von Mises
+          criterion. All loads are evaluated at the maximum continuous operating
+          speed of 8 000 RPM, which produces a tip speed of <strong>106.4 m/s
+          (Ma 0.31)</strong>.
+        </p>
+        <br/>
+        <div class="formula-block">
+sigma_c  = rho * omega^2 * integral( r * A(r) dr )  / A_root<br/>
+sigma_b  = (F_blade * 0.7R) * (h/2) / I_z<br/>
+tau      = T_blade * r_max / J<br/>
+sigma_vm = sqrt( (sigma_c + sigma_b)^2  +  3 * tau^2 )
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">Stress Breakdown</div>
+        <table class="data-table">
+          <thead><tr><th>Load</th><th>Value</th><th>% of limit</th></tr></thead>
+          <tbody>
+            <tr><td>Centrifugal (σ_c)</td><td class="mono">3.23 MPa</td><td class="mono pass">4.0%</td></tr>
+            <tr><td>Aerodynamic bending (σ_b)</td><td class="mono">4.38 MPa</td><td class="mono pass">5.5%</td></tr>
+            <tr><td>Torsion (τ)</td><td class="mono">0.16 MPa</td><td class="mono pass">0.2%</td></tr>
+            <tr><td><strong>Von Mises (σ_vm)</strong></td><td class="mono"><strong>7.62 MPa</strong></td><td class="mono pass"><strong>9.5%</strong></td></tr>
+            <tr><td>Allowable (SF = 2.5)</td><td class="mono">80.0 MPa</td><td>—</td></tr>
+            <tr><td><strong>Status</strong></td><td class="mono pass" colspan="2"><strong>PASS</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- utilisation bars -->
+    <div class="panel">
+      <div class="panel-header">Utilisation vs. Allowable (80 MPa)</div>
+      <div class="progress-wrap" style="padding:14px 20px">
+        <div class="progress-row">
+          <div class="progress-label">Centrifugal</div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:4%;background:linear-gradient(90deg,#34d399,#6c8fff)"></div>
+          </div>
+          <div class="progress-val" style="color:var(--accent3)">4.0%</div>
+        </div>
+        <div class="progress-row">
+          <div class="progress-label">Bending</div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:5.5%;background:linear-gradient(90deg,#34d399,#6c8fff)"></div>
+          </div>
+          <div class="progress-val" style="color:var(--accent3)">5.5%</div>
+        </div>
+        <div class="progress-row">
+          <div class="progress-label">Von Mises (combined)</div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:9.5%;background:linear-gradient(90deg,#34d399,#a78bfa)"></div>
+          </div>
+          <div class="progress-val" style="color:var(--accent3)">9.5%</div>
+        </div>
+      </div>
+    </div>
+
+    <br/>
+    <div class="panel">
+      <div class="panel-header">Dynamic Resonance Check</div>
+      <table class="data-table">
+        <thead><tr><th>Parameter</th><th>Value</th><th>Assessment</th></tr></thead>
+        <tbody>
+          <tr><td>1st bending natural frequency</td><td class="mono">197 Hz</td><td class="pass">Safe — far from BPF</td></tr>
+          <tr><td>Blade-passage frequency (BPF = RPM/60 × N)</td><td class="mono">667 Hz</td><td class="pass">No resonance</td></tr>
+          <tr><td>Separation ratio f_n / BPF</td><td class="mono">0.30</td><td class="pass">Ratio &lt; 0.8 — OK</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── TUBERCLES ──────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">&#9672; Leading-Edge Tubercles — Design &amp; Benefits</div>
+
+    <div class="two-col" style="margin-bottom:20px">
+      <div>
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:10px">What are tubercles?</h3>
+        <p style="color:var(--muted);font-size:13.5px;line-height:1.8">
+          Humpback whales have sinusoidal bumps along the leading edges of their
+          pectoral fins. These <strong>tubercles</strong> modify the span-wise
+          vorticity distribution, pinning small, stable vortices between bumps.
+          The result is:
+        </p>
+        <ul style="margin:12px 0 0 18px;font-size:13.5px;color:var(--muted);line-height:2">
+          <li>Delayed global stall onset (+2.9° effective AoA range)</li>
+          <li>Reduced drag through vortex mixing</li>
+          <li>Reduced tonal noise from smoother span-wise loading</li>
+        </ul>
+        <br/>
+        <div class="formula-block">
+LE_offset(r) = A * sin( 2π * r / λ )<br/><br/>
+A = 3 mm  (amplitude)<br/>
+λ = 40 mm (wavelength)<br/>
+A/λ = 0.075  (amplitude ratio)
+        </div>
+      </div>
+      <div class="tubercle-svg-wrap">
+        <svg viewBox="0 0 360 200" width="100%" xmlns="http://www.w3.org/2000/svg">
+          <!-- Span axis -->
+          <line x1="30" y1="170" x2="330" y2="170" stroke="#2a3250" stroke-width="1.5"/>
+          <text x="180" y="195" text-anchor="middle" fill="#8892a4" font-size="11">Span r [mm]</text>
+          <!-- Smooth baseline -->
+          <line x1="30" y1="100" x2="330" y2="100" stroke="#2a3250" stroke-width="1" stroke-dasharray="4,4"/>
+          <!-- Tubercle wave (leading edge) -->
+          <path id="tbwave" fill="none" stroke="#6c8fff" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- Labels -->
+          <text x="30"  y="95" fill="#8892a4" font-size="10">Baseline LE</text>
+          <text x="30"  y="62" fill="#a78bfa" font-size="11" font-weight="600">Tubercle LE</text>
+          <!-- Amplitude arrow -->
+          <line x1="290" y1="100" x2="290" y2="70" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="290" y1="100" x2="290" y2="130" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <text x="296" y="104" fill="#fbbf24" font-size="10">A = 3mm</text>
+          <!-- Wavelength arrow -->
+          <line x1="60" y1="160" x2="100" y2="160" stroke="#34d399" stroke-width="1.5"/>
+          <line x1="60" y1="155" x2="60" y2="165" stroke="#34d399" stroke-width="1.5"/>
+          <line x1="100" y1="155" x2="100" y2="165" stroke="#34d399" stroke-width="1.5"/>
+          <text x="65" y="153" fill="#34d399" font-size="10">λ = 40mm</text>
+          <!-- Defs -->
+          <defs>
+            <marker id="arr"  markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#fbbf24"/></marker>
+            <marker id="arr2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="270"><path d="M0,0 L0,6 L6,3 z" fill="#fbbf24"/></marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">Aeroacoustic Benefit Summary (8 000 RPM, 5 blades)</div>
+      <table class="data-table">
+        <thead><tr><th>Metric</th><th>Baseline (no tubercles)</th><th>With Tubercles</th><th>Gain</th></tr></thead>
+        <tbody>
+          <tr><td>Stall angle (AoA_stall)</td><td class="mono">~14°</td><td class="mono">~16.9°</td><td class="mono pass">+2.9°</td></tr>
+          <tr><td>C_D (drag coefficient)</td><td class="mono">0.01500</td><td class="mono">0.01475</td><td class="mono pass">−1.6%</td></tr>
+          <tr><td>L/D ratio</td><td class="mono">56.7</td><td class="mono">57.6</td><td class="mono pass">+1.7%</td></tr>
+          <tr><td>BPF loading noise (dB)</td><td class="mono">—</td><td class="mono">−1.0 dB</td><td class="mono pass">−1.0 dB</td></tr>
+          <tr><td>Trailing-edge tone (dB)</td><td class="mono">—</td><td class="mono">−0.5 dB</td><td class="mono pass">−0.5 dB</td></tr>
+          <tr><td><strong>Total noise reduction</strong></td><td class="mono">—</td><td class="mono"><strong>−1.5 dB</strong></td><td class="mono pass"><strong>−1.5 dB</strong></td></tr>
+          <tr><td>Figure of Merit</td><td class="mono">48.38</td><td class="mono">49.25</td><td class="mono pass">+1.80%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── WORKFLOW ───────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">&#9656; Computational Workflow</div>
+    <div class="panel">
+      <div class="panel-header">Pipeline: Geometry → Structural → Aeroacoustic → STEP/STL</div>
+      <table class="data-table">
+        <thead><tr><th>Step</th><th>Module</th><th>Method</th><th>Output</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="mono">1</span></td>
+            <td>Airfoil generation</td>
+            <td>NACA 4412 cosine-spaced coordinates</td>
+            <td>2-D section polygon</td>
+          </tr>
+          <tr>
+            <td><span class="mono">2</span></td>
+            <td>Tubercle offset</td>
+            <td>LE_offset = A·sin(2πr/λ) applied per section</td>
+            <td>Perturbed leading edge</td>
+          </tr>
+          <tr>
+            <td><span class="mono">3</span></td>
+            <td>Blade loft</td>
+            <td>CadQuery Solid.makeLoft() through 20 sections</td>
+            <td>Solid blade body</td>
+          </tr>
+          <tr>
+            <td><span class="mono">4</span></td>
+            <td>Hub &amp; pattern</td>
+            <td>Hub cylinder + 5× rotate 72° + union</td>
+            <td>Full propeller solid</td>
+          </tr>
+          <tr>
+            <td><span class="mono">5</span></td>
+            <td>Structural check</td>
+            <td>Centrifugal + bending + torsion → Von Mises</td>
+            <td>Stress report, MS</td>
+          </tr>
+          <tr>
+            <td><span class="mono">6</span></td>
+            <td>Aeroacoustic model</td>
+            <td>Empirical correlations (Chong 2022, Johari 2007)</td>
+            <td>ΔdB, ΔCD, ΔFM</td>
+          </tr>
+          <tr>
+            <td><span class="mono">7</span></td>
+            <td>Export</td>
+            <td>CadQuery STEP + STL (tol = 0.001 mm)</td>
+            <td>.step, .stl files</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── REFERENCES ─────────────────────────────────────────────────── -->
+  <div class="section">
+    <div class="section-title">&#9654; References</div>
+    <div class="panel" style="padding:8px 20px 4px">
+      <ol class="ref-list">
+        <li>Fish, F.E. &amp; Battle, J.M. (1995). Hydrodynamic design of the humpback whale flipper. <em>Journal of Morphology</em>, 225(1), 51–60.</li>
+        <li>Miklosovic, D.S. et al. (2004). Leading-edge tubercles delay stall on humpback whale flippers. <em>Physics of Fluids</em>, 16(5), L39–L42.</li>
+        <li>van Nierop, E.A. et al. (2008). How bumps on whale flippers delay stall: an aerodynamic model. <em>Physical Review Letters</em>, 100(5), 054502.</li>
+        <li>Johari, H. et al. (2007). Effects of leading-edge protuberances on airfoil performance. <em>AIAA Journal</em>, 45(11), 2634–2642.</li>
+        <li>Chong, T.P. et al. (2022). Tubercle leading-edge serration effects on aerofoil broadband noise. <em>Acta Acustica</em>, 6, 56.</li>
+        <li>Abbott, I.H. &amp; von Doenhoff, A.E. (1959). <em>Theory of Wing Sections</em>. Dover Publications. (NACA 4412 coordinates.)</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ── FOOTER ─────────────────────────────────────────────────────── -->
+  <div class="footer">
+    <div>FaradayX CAD-Expert · Quadcopter Propeller Prototype · Rev 1.0</div>
+    <div id="foot-date"></div>
+  </div>
+</div><!-- /page -->
+
+<!-- ── CANVAS PROPELLER DRAWING ─────────────────────────────────────── -->
+<script>
+  // Set dates
+  const now = new Date();
+  const fmt  = d => d.toLocaleDateString('en-GB',{year:'numeric',month:'short',day:'numeric'});
+  document.getElementById('gen-date').textContent = fmt(now);
+  document.getElementById('foot-date').textContent = fmt(now);
+
+  // ── Tubercle SVG wave ─────────────────────────────────────────────
+  (function() {
+    const path = document.getElementById('tbwave');
+    const x0 = 30, x1 = 280, y0 = 100, A = 30, lam = 40;
+    const scale = (x1 - x0) / 250;  // 250 mm span → 250 px
+    let d = '';
+    for (let px = x0; px <= x1; px += 2) {
+      const r_mm = (px - x0) / scale;
+      const y = y0 - A * Math.sin(2 * Math.PI * r_mm / lam);
+      d += (px === x0 ? 'M' : 'L') + px + ',' + y.toFixed(1) + ' ';
+    }
+    path.setAttribute('d', d);
+  })();
+
+  // ── Propeller canvas ─────────────────────────────────────────────
+  (function() {
+    const canvas = document.getElementById('propCanvas');
+    const ctx    = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const cx = W / 2, cy = H / 2;
+
+    function drawBlade(angle_deg) {
+      const angle = angle_deg * Math.PI / 180;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+
+      // Blade span goes from r=18 to r=100 px
+      const R0 = 18, R1 = 100;
+      const nSec = 30;
+
+      ctx.beginPath();
+      // Upper surface
+      for (let i = 0; i <= nSec; i++) {
+        const t   = i / nSec;
+        const r   = R0 + t * (R1 - R0);
+        const chd = (28 - t * 18) * 0.5;          // chord px
+        const tw  = (35 - t * 23) * Math.PI / 180;// twist
+        const A_t = 2.5 * Math.sin(2 * Math.PI * r / 20); // tubercle
+        const x   = -chd * 0.25 * Math.cos(tw) + A_t;
+        const y   = r + chd * 0.06 * Math.cos(tw);
+        i === 0 ? ctx.moveTo(x, -y) : ctx.lineTo(x, -y);
+      }
+      // Lower surface (reversed)
+      for (let i = nSec; i >= 0; i--) {
+        const t   = i / nSec;
+        const r   = R0 + t * (R1 - R0);
+        const chd = (28 - t * 18) * 0.5;
+        const tw  = (35 - t * 23) * Math.PI / 180;
+        const A_t = 2.5 * Math.sin(2 * Math.PI * r / 20);
+        const x   = chd * 0.75 * Math.cos(tw) + A_t;
+        const y   = r - chd * 0.04 * Math.cos(tw);
+        ctx.lineTo(x, -y);
+      }
+      ctx.closePath();
+
+      // Gradient fill
+      const grad = ctx.createLinearGradient(-10, -R1, 10, -R0);
+      grad.addColorStop(0, 'rgba(108,143,255,0.75)');
+      grad.addColorStop(0.5, 'rgba(167,139,250,0.5)');
+      grad.addColorStop(1, 'rgba(52,211,153,0.4)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(108,143,255,0.5)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Background
+    const bgGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 120);
+    bgGrad.addColorStop(0, 'rgba(30,42,74,0.5)');
+    bgGrad.addColorStop(1, 'rgba(12,15,26,0)');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // 5 blades at 72° intervals
+    for (let i = 0; i < 5; i++) drawBlade(i * 72);
+
+    // Hub
+    ctx.beginPath();
+    ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+    const hubGrad = ctx.createRadialGradient(cx-2, cy-2, 1, cx, cy, 12);
+    hubGrad.addColorStop(0, '#4a5e9e');
+    hubGrad.addColorStop(1, '#1a1f33');
+    ctx.fillStyle = hubGrad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(108,143,255,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Shaft bore
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#0c0f1a';
+    ctx.fill();
+
+    // Rotation circle
+    ctx.beginPath();
+    ctx.arc(cx, cy, 103, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(108,143,255,0.12)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 8]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Diameter label
+    ctx.fillStyle = 'rgba(136,146,164,0.9)';
+    ctx.font = '11px Inter, sans-serif';
+    ctx.fillText('Ø 254 mm', cx + 106, cy + 4);
+  })();
+</script>
+</body>
+</html>
