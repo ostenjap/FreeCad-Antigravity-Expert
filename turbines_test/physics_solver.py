@@ -8,7 +8,7 @@ class TurbineBladeFEASolver:
     Finite Element Analysis (FEA) simulator for gas turbine blades.
     Computes centrifugal loading, thermal gradients, and mechanical/thermal stresses.
     """
-    def __init__(self, step_path="turbines_test/turbine_blade.step", rpm=30000.0, t_root=400.0, t_tip=1000.0, r_hub=200.0):
+    def __init__(self, step_path="turbines_test/cad/turbine_blade.step", rpm=30000.0, t_root=400.0, t_tip=1000.0, r_hub=200.0):
         self.step_path = step_path
         self.rpm = rpm
         self.omega = (rpm * 2 * math.pi) / 60.0  # rad/s

@@ -330,13 +330,13 @@ def run_coupled_swarm_pipeline():
     
     # 2. Solvers Setup
     fea_solver = TurbineBladeFEASolver(
-        step_path="turbines_test/turbine_blade.step",
+        step_path="turbines_test/cad/turbine_blade.step",
         rpm=30000.0,
         t_root=400.0,
         t_tip=1000.0
     )
     cfd_solver = TurbineBladeCFDSolver(
-        step_path="turbines_test/turbine_blade.step",
+        step_path="turbines_test/cad/turbine_blade.step",
         rpm=30000.0,
         t_coolant=config["coolant_temperature"],
         t_gas=config["gas_temperature"]
@@ -374,7 +374,7 @@ def run_coupled_swarm_pipeline():
     
     if approved:
         # Export optimization JSON
-        config_out = "turbines_test/turbine_blade_coupled_optimized.json"
+        config_out = "turbines_test/data/turbine_blade_coupled_optimized.json"
         with open(config_out, "w") as f:
             serializable = {
                 "material": "Inconel 718",
@@ -390,15 +390,15 @@ def run_coupled_swarm_pipeline():
         print(f"{GREEN}[OK] Coupled optimized design configurations saved to: {config_out}{RESET}")
         
         # STEP and FreeCAD file export
-        source_step = "turbines_test/turbine_blade_stressed.step"
-        target_step = "turbines_test/turbine_blade_optimized.step"
+        source_step = "turbines_test/cad/turbine_blade_stressed.step"
+        target_step = "turbines_test/cad/turbine_blade_optimized.step"
         if os.path.exists(source_step):
             import shutil
             shutil.copy(source_step, target_step)
             print(f"{GREEN}[OK] Production-ready STEP copied to: {target_step}{RESET}")
             
-        source_fcstd = "turbines_test/turbine_blade_stressed.FCStd"
-        target_fcstd = "turbines_test/turbine_blade_optimized.FCStd"
+        source_fcstd = "turbines_test/cad/turbine_blade_stressed.FCStd"
+        target_fcstd = "turbines_test/cad/turbine_blade_optimized.FCStd"
         if os.path.exists(source_fcstd):
             import shutil
             shutil.copy(source_fcstd, target_fcstd)

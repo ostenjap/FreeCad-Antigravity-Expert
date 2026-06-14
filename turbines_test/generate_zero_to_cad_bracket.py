@@ -56,5 +56,5 @@ result = (
 
 # Export shape to STEP
 print("Exporting Zero-To-CAD Bracket to step file...")
-cq.exporters.export(result, "turbines_test/bracket_example.step")
+cq.exporters.export(result, "turbines_test/cad/bracket_example.step")
 print("Done!")

@@ -8,7 +8,7 @@ class TurbineBladeCFDSolver:
     for gas turbine blades. Evaluates aerodynamic efficiency (L/D ratio) and
     thermal profile based on external shape and internal cooling geometry.
     """
-    def __init__(self, step_path="turbines_test/turbine_blade.step", rpm=30000.0, t_coolant=400.0, t_gas=1000.0, r_hub=200.0):
+    def __init__(self, step_path="turbines_test/cad/turbine_blade.step", rpm=30000.0, t_coolant=400.0, t_gas=1000.0, r_hub=200.0):
         self.step_path = step_path
         self.rpm = rpm
         self.omega = (rpm * 2 * math.pi) / 60.0  # rad/s

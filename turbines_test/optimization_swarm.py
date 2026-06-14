@@ -255,7 +255,7 @@ def run_swarm_pipeline():
     
     # Step 2: Set up Solver
     solver = TurbineBladeFEASolver(
-        step_path="turbines_test/turbine_blade.step",
+        step_path="turbines_test/cad/turbine_blade.step",
         rpm=config["rpm"],
         t_root=config["temp_root"],
         t_tip=config["temp_tip"]
@@ -297,7 +297,7 @@ def run_swarm_pipeline():
     
     if approved:
         # Export optimized model JSON configuration
-        config_out = "turbines_test/turbine_blade_optimized.json"
+        config_out = "turbines_test/data/turbine_blade_optimized.json"
         with open(config_out, "w") as f:
             # Convert numpy array to list for JSON serialization
             serializable_res = {
@@ -312,8 +312,8 @@ def run_swarm_pipeline():
         
         # Export STEP file
         # We copy the fully featured and verified turbine_blade_stressed.step as the production ready solid
-        source_step = "turbines_test/turbine_blade_stressed.step"
-        target_step = "turbines_test/turbine_blade_optimized.step"
+        source_step = "turbines_test/cad/turbine_blade_stressed.step"
+        target_step = "turbines_test/cad/turbine_blade_optimized.step"
         if os.path.exists(source_step):
             import shutil
             shutil.copy(source_step, target_step)
@@ -326,8 +326,8 @@ def run_swarm_pipeline():
             
         # Create verified FreeCAD project
         # We can copy the existing verified FCStd file
-        source_fcstd = "turbines_test/turbine_blade_stressed.FCStd"
-        target_fcstd = "turbines_test/turbine_blade_optimized.FCStd"
+        source_fcstd = "turbines_test/cad/turbine_blade_stressed.FCStd"
+        target_fcstd = "turbines_test/cad/turbine_blade_optimized.FCStd"
         if os.path.exists(source_fcstd):
             import shutil
             shutil.copy(source_fcstd, target_fcstd)
