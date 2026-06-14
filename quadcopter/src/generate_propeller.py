@@ -130,23 +130,51 @@ def section_polygon_mm(chord_mm, twist_deg, le_offset_mm=0.0, n_pts=24):
 def build_blade_mm(n_sections=16):
     """
     Build a single propeller blade solid (units: mm).
-    Radial direction = Z axis.
+    Radial direction = X axis.
     """
     span_m  = PROP_RADIUS_M - HUB_RADIUS_M
-    r_vals  = np.linspace(HUB_RADIUS_M, PROP_RADIUS_M, n_sections)
+    # Start slightly inside the hub to ensure a clean union
+    r_start = 0.8 * HUB_RADIUS_M
+    r_end   = PROP_RADIUS_M
+    r_vals  = np.linspace(r_start, r_end, n_sections)
 
     wires = []
     for r_m in r_vals:
-        frac     = (r_m - HUB_RADIUS_M) / span_m
+        # Interpolate chord and twist based on clamped radius (HUB_RADIUS to PROP_RADIUS)
+        r_calc   = max(r_m, HUB_RADIUS_M)
+        frac     = (r_calc - HUB_RADIUS_M) / span_m
         chord_mm = (CHORD_ROOT_M + frac * (CHORD_TIP_M - CHORD_ROOT_M)) * S
         twist    = TWIST_ROOT_DEG + frac * (TWIST_TIP_DEG - TWIST_ROOT_DEG)
-        le_off   = TUBERCLE_AMP_M * math.sin(2*math.pi*r_m / TUBERCLE_WL_M) * S
-        z_mm     = r_m * S
 
-        pts_2d = section_polygon_mm(chord_mm, twist, le_off)
+        # Tubercle leading edge offset (only on the external part of the blade)
+        if r_m >= HUB_RADIUS_M:
+            le_off = TUBERCLE_AMP_M * math.sin(2 * math.pi * (r_m - HUB_RADIUS_M) / TUBERCLE_WL_M) * S
+        else:
+            le_off = 0.0
 
-        # Convert to 3-D points (x, y, z=z_mm) — radial axis is Z
-        pts_3d = [cq.Vector(px, py, z_mm) for px, py in pts_2d]
+        # Unrotated section points (twist_deg = 0)
+        pts_2d = section_polygon_mm(chord_mm, 0.0, le_off)
+
+        # Center sections around the aerodynamic center (25% chord) and map to 3D:
+        # X = r_m * S (radial)
+        # Y = y_rot (chordwise / tangential, LE at positive Y, TE at negative Y)
+        # Z = z_rot (thickness / axial, upper surface at positive Z)
+        ac_x = 0.25 * chord_mm + le_off
+        a = math.radians(twist)
+        cos_a, sin_a = math.cos(a), math.sin(a)
+
+        pts_3d = []
+        for px, py in pts_2d:
+            dx = px - ac_x
+            dy = py
+
+            # Rotate in YZ plane.
+            # Positive twist 'a' rotates LE (+Y) towards +Z
+            y_rot = -dx * cos_a - dy * sin_a + le_off
+            z_rot = -dx * sin_a + dy * cos_a
+
+            pts_3d.append(cq.Vector(r_m * S, y_rot, z_rot))
+
         pts_3d.append(pts_3d[0])          # close the polygon explicitly
 
         wire = cq.Wire.makePolygon(pts_3d)
@@ -188,7 +216,7 @@ def build_propeller():
 
 
 # ---------------------------------------------------------------------------
-# 7. Mass estimate
+# 7. Mass estimate & properties
 # ---------------------------------------------------------------------------
 
 def mass_estimate_g(wp):
@@ -199,6 +227,42 @@ def mass_estimate_g(wp):
         return round(vol_m3 * MATERIAL["density_kg_m3"] * 1000, 1)
     except Exception:
         return None
+
+
+def compute_mass_properties(wp):
+    """
+    Computes volume (cm3) and mass (g) for the given Workplane or Shape.
+    """
+    try:
+        vol_mm3 = wp.val().Volume()
+        vol_cm3 = vol_mm3 / 1000.0  # 1 cm3 = 1000 mm3
+        vol_m3  = vol_mm3 * 1e-9
+        mass_g  = vol_m3 * MATERIAL["density_kg_m3"] * 1000.0
+        return {
+            "volume_cm3": round(vol_cm3, 3),
+            "mass_g": round(mass_g, 2)
+        }
+    except Exception as e:
+        return {"volume_cm3": 0.0, "mass_g": 0.0, "error": str(e)}
+
+
+def export_all(wp, out_dir: pathlib.Path, tag="propeller_5blade_tubercle"):
+    """
+    Exports the shape to STEP and STL with a timestamped filename.
+    Returns the file paths.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    ts        = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    step_path = out_dir / f"{tag}_{ts}.step"
+    stl_path  = out_dir / f"{tag}_{ts}.stl"
+
+    exporters.export(wp, str(step_path))
+    exporters.export(wp, str(stl_path), exportType="STL",
+                     tolerance=0.001, angularTolerance=0.05)
+    return {
+        "step": str(step_path),
+        "stl": str(stl_path)
+    }
 
 
 # ---------------------------------------------------------------------------
