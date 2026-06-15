@@ -57,6 +57,11 @@ class PropellerAero:
     CL_clean:     float = 0.85      # design lift coeff (NACA 4412 at ~6° AoA)
     CD_clean:     float = 0.015     # design drag coeff
     rho_air:      float = 1.225     # [kg/m³]
+    # Tubercle geometry — defaults preserve the historical module constants so
+    # the existing CLI and prior results are unchanged.  The optimizer overrides
+    # these per candidate design.
+    tubercle_amp_m: float = A_tubercle    # [m] amplitude (half peak-to-valley)
+    tubercle_wl_m:  float = lambda_tb     # [m] wavelength
 
     @property
     def omega(self) -> float:
@@ -70,6 +75,13 @@ class PropellerAero:
     def v_eff(self) -> float:
         """Effective velocity at 0.7R station."""
         return self.omega * 0.70 * self.diameter_m / 2
+
+    @property
+    def AR_tb(self) -> float:
+        """Amplitude-to-wavelength ratio for this design (0 if no tubercles)."""
+        if self.tubercle_wl_m <= 0:
+            return 0.0
+        return self.tubercle_amp_m / self.tubercle_wl_m
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +101,7 @@ def lift_mod(aero: PropellerAero, in_post_stall: bool = False) -> dict:
     CL modification.  Pre-stall: ~neutral (small gain).
     Post-stall: meaningful gain that sustains hover during gusts.
     """
-    CL_tb = aero.CL_clean * (1 + K_LIFT * AR_tubercle * (1.5 if in_post_stall else 0.2))
+    CL_tb = aero.CL_clean * (1 + K_LIFT * aero.AR_tb * (1.5 if in_post_stall else 0.2))
     delta  = CL_tb - aero.CL_clean
     return {"CL_clean": aero.CL_clean, "CL_tubercle": round(CL_tb, 4),
             "delta_CL": round(delta, 4), "gain_pct": round(delta / aero.CL_clean * 100, 2)}
@@ -100,14 +112,14 @@ def drag_mod(aero: PropellerAero) -> dict:
     CD reduction at operating AoA due to span-wise vortex pinning.
     CD_tb = CD_clean × (1 - K_DRAG × (A/λ))
     """
-    CD_tb  = aero.CD_clean * (1 - K_DRAG * AR_tubercle)
+    CD_tb  = aero.CD_clean * (1 - K_DRAG * aero.AR_tb)
     L_D_clean  = aero.CL_clean / aero.CD_clean
     L_D_tb     = aero.CL_clean / CD_tb        # CL unchanged pre-stall
     return {
         "CD_clean":     aero.CD_clean,
         "CD_tubercle":  round(CD_tb, 5),
         "delta_CD":     round(aero.CD_clean - CD_tb, 5),
-        "reduction_pct":round(K_DRAG * AR_tubercle * 100, 2),
+        "reduction_pct":round(K_DRAG * aero.AR_tb * 100, 2),
         "LD_clean":     round(L_D_clean, 2),
         "LD_tubercle":  round(L_D_tb, 2),
     }
@@ -127,7 +139,7 @@ def acoustic_benefit(aero: PropellerAero) -> dict:
 
     Reference: Chong, T.P. et al. 2022, Acta Acustica
     """
-    A_over_c = A_tubercle / aero.chord_eff_m
+    A_over_c = aero.tubercle_amp_m / aero.chord_eff_m
     ΔSPL_loading = K_ACOUSTIC * A_over_c
     ΔSPL_TE      = 0.5 * ΔSPL_loading
 
@@ -181,11 +193,11 @@ def full_report(aero: PropellerAero | None = None) -> dict:
             "mach_tip":       round(aero.v_tip / 343, 4),
         },
         "tubercle_geometry": {
-            "amplitude_mm":    A_tubercle * 1000,
-            "wavelength_mm":   lambda_tb  * 1000,
-            "A_over_lambda":   round(AR_tubercle, 4),
+            "amplitude_mm":    aero.tubercle_amp_m * 1000,
+            "wavelength_mm":   aero.tubercle_wl_m  * 1000,
+            "A_over_lambda":   round(aero.AR_tb, 4),
         },
-        "stall_delay_deg":   round(stall_delay_deg(), 2),
+        "stall_delay_deg":   round(stall_delay_deg(aero.AR_tb), 2),
         "lift":              lift_mod(aero, in_post_stall=False),
         "lift_post_stall":   lift_mod(aero, in_post_stall=True),
         "drag":              drag_mod(aero),

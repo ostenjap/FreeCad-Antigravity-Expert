@@ -1,0 +1,24 @@
+[
+  {
+    "index": 0,
+    "design": {
+      "chord_root_m": 0.027298716614174347,
+      "chord_tip_m": 0.013794000281174367,
+      "twist_root_deg": 39.64974817160318,
+      "twist_tip_deg": 15.322856204573755,
+      "tubercle_amp_m": 0.00025984425743584685,
+      "tubercle_wl_m": 0.05060658172194974,
+      "n_blades": 6,
+      "prop_radius_m": 0.127,
+      "hub_radius_m": 0.012,
+      "hub_height_m": 0.022,
+      "shaft_hole_r_m": 0.003,
+      "thickness_ratio": 0.12,
+      "rpm": 8000.0,
+      "total_thrust_N": 15.0,
+      "total_torque_Nm": 0.35,
+      "rho_air": 1.225
+    },
+    "case_dir": "C:\\Users\\wiece\\OneDrive\\Desktop\\FaradayX\\CAD-Expert\\quadcopter\\cfd\\optim_cases\\design_00"
+  }
+]

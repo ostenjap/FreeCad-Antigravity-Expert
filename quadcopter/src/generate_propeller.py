@@ -127,28 +127,64 @@ def section_polygon_mm(chord_mm, twist_deg, le_offset_mm=0.0, n_pts=24):
 # 5. Build one blade using cq.Wire.makePolygon + cq.Solid.makeLoft
 # ---------------------------------------------------------------------------
 
-def build_blade_mm(n_sections=16):
+# ---------------------------------------------------------------------------
+# Parametric design bundle — lets build_propeller() accept an arbitrary design
+# (e.g. from the optimizer) while defaulting to the module constants above so
+# the existing CLI / prior behaviour is unchanged.
+# ---------------------------------------------------------------------------
+from dataclasses import dataclass
+
+
+@dataclass
+class BladeParams:
+    n_blades:       int   = N_BLADES
+    prop_radius_m:  float = PROP_RADIUS_M
+    hub_radius_m:   float = HUB_RADIUS_M
+    hub_height_m:   float = HUB_HEIGHT_M
+    shaft_hole_r_m: float = SHAFT_HOLE_R_M
+    chord_root_m:   float = CHORD_ROOT_M
+    chord_tip_m:    float = CHORD_TIP_M
+    twist_root_deg: float = TWIST_ROOT_DEG
+    twist_tip_deg:  float = TWIST_TIP_DEG
+    tubercle_amp_m: float = TUBERCLE_AMP_M
+    tubercle_wl_m:  float = TUBERCLE_WL_M
+
+
+def _params_from_design(design) -> BladeParams:
+    """Map an optimizer Design (duck-typed) onto BladeParams, falling back to
+    module defaults for any attribute the design does not provide."""
+    if design is None:
+        return BladeParams()
+    d = BladeParams()
+    for f in d.__dataclass_fields__:
+        if hasattr(design, f) and getattr(design, f) is not None:
+            setattr(d, f, getattr(design, f))
+    return d
+
+
+def build_blade_mm(n_sections=16, params: BladeParams = None):
     """
     Build a single propeller blade solid (units: mm).
     Radial direction = X axis.
     """
-    span_m  = PROP_RADIUS_M - HUB_RADIUS_M
+    p = params or BladeParams()
+    span_m  = p.prop_radius_m - p.hub_radius_m
     # Start slightly inside the hub to ensure a clean union
-    r_start = 0.8 * HUB_RADIUS_M
-    r_end   = PROP_RADIUS_M
+    r_start = 0.8 * p.hub_radius_m
+    r_end   = p.prop_radius_m
     r_vals  = np.linspace(r_start, r_end, n_sections)
 
     wires = []
     for r_m in r_vals:
-        # Interpolate chord and twist based on clamped radius (HUB_RADIUS to PROP_RADIUS)
-        r_calc   = max(r_m, HUB_RADIUS_M)
-        frac     = (r_calc - HUB_RADIUS_M) / span_m
-        chord_mm = (CHORD_ROOT_M + frac * (CHORD_TIP_M - CHORD_ROOT_M)) * S
-        twist    = TWIST_ROOT_DEG + frac * (TWIST_TIP_DEG - TWIST_ROOT_DEG)
+        # Interpolate chord and twist based on clamped radius (hub → tip)
+        r_calc   = max(r_m, p.hub_radius_m)
+        frac     = (r_calc - p.hub_radius_m) / span_m
+        chord_mm = (p.chord_root_m + frac * (p.chord_tip_m - p.chord_root_m)) * S
+        twist    = p.twist_root_deg + frac * (p.twist_tip_deg - p.twist_root_deg)
 
         # Tubercle leading edge offset (only on the external part of the blade)
-        if r_m >= HUB_RADIUS_M:
-            le_off = TUBERCLE_AMP_M * math.sin(2 * math.pi * (r_m - HUB_RADIUS_M) / TUBERCLE_WL_M) * S
+        if r_m >= p.hub_radius_m and p.tubercle_wl_m > 0:
+            le_off = p.tubercle_amp_m * math.sin(2 * math.pi * (r_m - p.hub_radius_m) / p.tubercle_wl_m) * S
         else:
             le_off = 0.0
 
@@ -188,26 +224,37 @@ def build_blade_mm(n_sections=16):
 # 6. Full propeller assembly
 # ---------------------------------------------------------------------------
 
-def build_propeller():
-    print("  [1/4] Building blade sections & loft...")
-    blade_solid = build_blade_mm(n_sections=16)
+def build_propeller(design=None, n_sections: int = 16):
+    """Build the full propeller assembly.
+
+    Parameters
+    ----------
+    design : optional
+        Any object exposing the optimizer Design fields (n_blades, chord_root_m,
+        twist_root_deg, tubercle_amp_m, …).  When ``None`` the module constants
+        are used, preserving the original single-design behaviour.
+    """
+    p = _params_from_design(design)
+
+    print(f"  [1/4] Building blade sections & loft ({p.n_blades} blades)...")
+    blade_solid = build_blade_mm(n_sections=n_sections, params=p)
     blade_wp    = cq.Workplane("XY").add(blade_solid)
 
-    print("  [2/4] Patterning 5 blades at 72-deg intervals...")
+    print(f"  [2/4] Patterning {p.n_blades} blades...")
     # Rotate blade around Z and union all
-    angle_step = 360.0 / N_BLADES
+    angle_step = 360.0 / p.n_blades
     all_blades = blade_wp
 
-    for i in range(1, N_BLADES):
+    for i in range(1, p.n_blades):
         rotated = blade_wp.rotate((0, 0, 0), (0, 0, 1), i * angle_step)
         all_blades = all_blades.union(rotated)
 
     print("  [3/4] Building hub...")
     hub = (cq.Workplane("XY")
-             .cylinder(HUB_HEIGHT_M * S, HUB_RADIUS_M * S)
+             .cylinder(p.hub_height_m * S, p.hub_radius_m * S)
              .faces(">Z")
              .workplane()
-             .circle(SHAFT_HOLE_R_M * S)
+             .circle(p.shaft_hole_r_m * S)
              .cutThruAll())
 
     print("  [4/4] Merging hub + blades...")

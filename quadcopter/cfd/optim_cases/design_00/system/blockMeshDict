@@ -1,0 +1,72 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  version:     2.0;
+  format:      ascii;
+  class:       dictionary;
+  object:      blockMeshDict;
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+convertToMeters 1;
+
+vertices
+(
+    (-0.5 -0.5 -1.0) // 0
+    ( 0.5 -0.5 -1.0) // 1
+    ( 0.5  0.5 -1.0) // 2
+    (-0.5  0.5 -1.0) // 3
+    (-0.5 -0.5  0.5) // 4
+    ( 0.5 -0.5  0.5) // 5
+    ( 0.5  0.5  0.5) // 6
+    (-0.5  0.5  0.5) // 7
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (40 40 60) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (4 5 6 7)
+        );
+    }
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (0 3 2 1)
+        );
+    }
+    tunnelWalls
+    {
+        type wall;
+        faces
+        (
+            (0 1 5 4)
+            (1 2 6 5)
+            (2 3 7 6)
+            (3 0 4 7)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);

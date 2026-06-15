@@ -311,9 +311,15 @@ MRF1
 
     origin          (0 0 0);
     axis            (0 0 1);
-    omega           837.758; // 8000 RPM in rad/s
+    omega           %(omega).3f; // %(rpm).0f RPM in rad/s
 }
 """
+
+
+def build_mrf_properties(rpm: float = 8000.0) -> str:
+    """Render the MRFProperties dict with omega computed from rpm."""
+    omega = rpm * 2.0 * math.pi / 60.0
+    return MRF_PROPERTIES % {"omega": omega, "rpm": rpm}
 
 CONTROL_DICT = """/*--------------------------------*- C++ -*----------------------------------*\\
   version:     2.0;
@@ -821,35 +827,52 @@ def write_file(path, content):
     print(f"  Created: {path.relative_to(ROOT)}")
 
 
-def main():
+def main(design=None, rpm: float = 8000.0, case_dir: pathlib.Path = None):
+    """Build an OpenFOAM case.
+
+    Parameters
+    ----------
+    design : optional
+        Optimizer Design used for the STL geometry and (its rpm) the MRF zone.
+    rpm : float
+        Rotation speed; sets the MRF omega.  If ``design`` carries an ``rpm``
+        attribute it overrides this argument.
+    case_dir : Path
+        Target case directory (default: the project's propeller_case).
+    """
+    case_dir = pathlib.Path(case_dir) if case_dir is not None else CASE_DIR
+    if design is not None and getattr(design, "rpm", None):
+        rpm = design.rpm
+
     print("=" * 60)
     print("  OpenFOAM CFD Case Directory Builder (Header Fix)")
-    print(f"  Target: {CASE_DIR.relative_to(ROOT)}")
+    print(f"  Target: {case_dir}")
+    print(f"  RPM   : {rpm:.0f}")
     print("=" * 60)
 
     # 1. Write boundary condition files in 0/
-    write_file(CASE_DIR / "0" / "U", U_CONTENT)
-    write_file(CASE_DIR / "0" / "p", P_CONTENT)
-    write_file(CASE_DIR / "0" / "k", K_CONTENT)
-    write_file(CASE_DIR / "0" / "omega", OMEGA_CONTENT)
-    write_file(CASE_DIR / "0" / "nut", NUT_CONTENT)
+    write_file(case_dir / "0" / "U", U_CONTENT)
+    write_file(case_dir / "0" / "p", P_CONTENT)
+    write_file(case_dir / "0" / "k", K_CONTENT)
+    write_file(case_dir / "0" / "omega", OMEGA_CONTENT)
+    write_file(case_dir / "0" / "nut", NUT_CONTENT)
 
     # 2. Write constant files
-    write_file(CASE_DIR / "constant" / "transportProperties", TRANSPORT_PROPERTIES)
-    write_file(CASE_DIR / "constant" / "turbulenceProperties", TURBULENCE_PROPERTIES)
-    write_file(CASE_DIR / "constant" / "MRFProperties", MRF_PROPERTIES)
+    write_file(case_dir / "constant" / "transportProperties", TRANSPORT_PROPERTIES)
+    write_file(case_dir / "constant" / "turbulenceProperties", TURBULENCE_PROPERTIES)
+    write_file(case_dir / "constant" / "MRFProperties", build_mrf_properties(rpm))
 
     # 3. Write system files
-    write_file(CASE_DIR / "system" / "controlDict", CONTROL_DICT)
-    write_file(CASE_DIR / "system" / "fvSchemes", FV_SCHEMES)
-    write_file(CASE_DIR / "system" / "fvSolution", FV_SOLUTION)
-    write_file(CASE_DIR / "system" / "blockMeshDict", BLOCK_MESH_DICT)
-    write_file(CASE_DIR / "system" / "snappyHexMeshDict", SNAPPY_HEX_MESH_DICT)
-    write_file(CASE_DIR / "system" / "surfaceFeatureExtractDict", SURFACE_FEATURE_EXTRACT_DICT)
-    write_file(CASE_DIR / "system" / "meshQualityDict", MESH_QUALITY_DICT)
+    write_file(case_dir / "system" / "controlDict", CONTROL_DICT)
+    write_file(case_dir / "system" / "fvSchemes", FV_SCHEMES)
+    write_file(case_dir / "system" / "fvSolution", FV_SOLUTION)
+    write_file(case_dir / "system" / "blockMeshDict", BLOCK_MESH_DICT)
+    write_file(case_dir / "system" / "snappyHexMeshDict", SNAPPY_HEX_MESH_DICT)
+    write_file(case_dir / "system" / "surfaceFeatureExtractDict", SURFACE_FEATURE_EXTRACT_DICT)
+    write_file(case_dir / "system" / "meshQualityDict", MESH_QUALITY_DICT)
 
     # 4. Write script files
-    run_sh_path = CASE_DIR / "run_cfd.sh"
+    run_sh_path = case_dir / "run_cfd.sh"
     write_file(run_sh_path, RUN_CFD_SH)
     try:
         os.chmod(run_sh_path, 0o755)
@@ -857,15 +880,15 @@ def main():
         pass
 
     # 5. Export STL geometry
-    stl_dir = CASE_DIR / "constant" / "triSurface"
+    stl_dir = case_dir / "constant" / "triSurface"
     stl_dir.mkdir(parents=True, exist_ok=True)
     stl_path = stl_dir / "propeller_mm.stl"
 
     if HAS_CQ:
         print("\n  [CQ] CadQuery detected. Generating watertight propeller geometry...")
         try:
-            prop = build_propeller()
-            print(f"  [CQ] Exporting STL -> {stl_path.relative_to(ROOT)}")
+            prop = build_propeller(design)
+            print(f"  [CQ] Exporting STL -> {stl_path}")
             cq.exporters.export(prop, str(stl_path), exportType="STL",
                                 tolerance=0.001, angularTolerance=0.05)
             print("  [CQ] STL Export complete.")
