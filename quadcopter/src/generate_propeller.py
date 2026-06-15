@@ -179,23 +179,32 @@ def build_blade_mm(n_sections=16, params: BladeParams = None):
         # Interpolate chord and twist based on clamped radius (hub → tip)
         r_calc   = max(r_m, p.hub_radius_m)
         frac     = (r_calc - p.hub_radius_m) / span_m
-        chord_mm = (p.chord_root_m + frac * (p.chord_tip_m - p.chord_root_m)) * S
+        chord_base_mm = (p.chord_root_m + frac * (p.chord_tip_m - p.chord_root_m)) * S
         twist    = p.twist_root_deg + frac * (p.twist_tip_deg - p.twist_root_deg)
 
-        # Tubercle leading edge offset (only on the external part of the blade)
+        # Tubercle = humpback-whale leading-edge protuberance.  It modulates the
+        # LOCAL CHORD sinusoidally with radius (LE scallops in/out) while the
+        # quarter-chord PITCH AXIS stays straight — so the blade does NOT snake
+        # sideways.  (The old model rigidly translated the whole section, which
+        # made the blade wander like a ribbon.)
         if r_m >= p.hub_radius_m and p.tubercle_wl_m > 0:
-            le_off = p.tubercle_amp_m * math.sin(2 * math.pi * (r_m - p.hub_radius_m) / p.tubercle_wl_m) * S
+            delta_mm = (p.tubercle_amp_m
+                        * math.sin(2 * math.pi * (r_m - p.hub_radius_m) / p.tubercle_wl_m)
+                        * S)
         else:
-            le_off = 0.0
+            delta_mm = 0.0
+        chord_mm = max(chord_base_mm + delta_mm, 1.0)
 
-        # Unrotated section points (twist_deg = 0)
-        pts_2d = section_polygon_mm(chord_mm, 0.0, le_off)
+        # Unrotated section points (twist_deg = 0), no rigid offset
+        pts_2d = section_polygon_mm(chord_mm, 0.0, 0.0)
 
         # Center sections around the aerodynamic center (25% chord) and map to 3D:
         # X = r_m * S (radial)
         # Y = y_rot (chordwise / tangential, LE at positive Y, TE at negative Y)
         # Z = z_rot (thickness / axial, upper surface at positive Z)
-        ac_x = 0.25 * chord_mm + le_off
+        # The quarter-chord point maps to the X axis for EVERY station, so the
+        # pitch axis is a straight radial line and only the chord (LE) undulates.
+        ac_x = 0.25 * chord_mm
         a = math.radians(twist)
         cos_a, sin_a = math.cos(a), math.sin(a)
 
@@ -206,7 +215,7 @@ def build_blade_mm(n_sections=16, params: BladeParams = None):
 
             # Rotate in YZ plane.
             # Positive twist 'a' rotates LE (+Y) towards +Z
-            y_rot = -dx * cos_a - dy * sin_a + le_off
+            y_rot = -dx * cos_a - dy * sin_a
             z_rot = -dx * sin_a + dy * cos_a
 
             pts_3d.append(cq.Vector(r_m * S, y_rot, z_rot))

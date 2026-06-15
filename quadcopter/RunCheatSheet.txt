@@ -1,0 +1,5 @@
+cd CAD-Expert/quadcopter/src
+python -m autoresearch.researcher --no-llm --budget 30      # fast deterministic
+python -m autoresearch.researcher --budget 1800             # full swarm (see note)
+python cfd_verify.py --top 3                                 # prepare CFD cases
+python cfd_verify.py --top 3 --run                           # if OpenFOAM via WSL/Docker

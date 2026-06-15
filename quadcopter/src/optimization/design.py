@@ -30,8 +30,8 @@ BOUNDS: dict[str, Tuple[float, float, bool]] = {
     "chord_tip_m":    (0.006, 0.014, False),
     "twist_root_deg": (25.0,  45.0,  False),
     "twist_tip_deg":  (6.0,   20.0,  False),
-    "tubercle_amp_m": (0.0,   0.005, False),
-    "tubercle_wl_m":  (0.020, 0.060, False),
+    "tubercle_amp_m": (0.0,   0.003, False),   # max ~9% root chord (realistic)
+    "tubercle_wl_m":  (0.030, 0.070, False),   # min 30 mm → max ~3.8 bumps across span
     "n_blades":       (2,     6,     True),
 }
 
