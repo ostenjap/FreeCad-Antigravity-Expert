@@ -252,9 +252,8 @@ def export_all(wp, out_dir: pathlib.Path, tag="propeller_5blade_tubercle"):
     Returns the file paths.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
-    ts        = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    step_path = out_dir / f"{tag}_{ts}.step"
-    stl_path  = out_dir / f"{tag}_{ts}.stl"
+    step_path = out_dir / f"{tag}.step"
+    stl_path  = out_dir / f"{tag}.stl"
 
     exporters.export(wp, str(step_path))
     exporters.export(wp, str(stl_path), exportType="STL",
@@ -271,9 +270,8 @@ def export_all(wp, out_dir: pathlib.Path, tag="propeller_5blade_tubercle"):
 
 def export_step_stl(wp, out_dir: pathlib.Path, tag="propeller_5blade_tubercle"):
     out_dir.mkdir(parents=True, exist_ok=True)
-    ts        = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    step_path = out_dir / f"{tag}_{ts}.step"
-    stl_path  = out_dir / f"{tag}_{ts}.stl"
+    step_path = out_dir / f"{tag}.step"
+    stl_path  = out_dir / f"{tag}.stl"
 
     print(f"  Writing STEP -> {step_path}")
     exporters.export(wp, str(step_path))
@@ -310,15 +308,14 @@ if __name__ == "__main__":
 
     out_dir = pathlib.Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    ts        = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    step_path = out_dir / f"propeller_5blade_tubercle_{ts}.step"
+    step_path = out_dir / "propeller_5blade_tubercle.step"
 
     print(f"\n  Exporting STEP -> {step_path}")
     exporters.export(prop, str(step_path))
     print("  STEP export complete.")
 
     if not args.step_only:
-        stl_path = out_dir / f"propeller_5blade_tubercle_{ts}.stl"
+        stl_path = out_dir / "propeller_5blade_tubercle.stl"
         print(f"  Exporting STL  -> {stl_path}")
         exporters.export(prop, str(stl_path), exportType="STL",
                          tolerance=0.001, angularTolerance=0.05)
@@ -342,7 +339,7 @@ if __name__ == "__main__":
         "material": MATERIAL,
         "step_file": str(step_path),
     }
-    rpt_path = out_dir / f"propeller_report_{ts}.json"
+    rpt_path = out_dir.parent / "data" / "propeller_report.json"
     with open(rpt_path, "w") as f:
         json.dump(rpt, f, indent=2)
 

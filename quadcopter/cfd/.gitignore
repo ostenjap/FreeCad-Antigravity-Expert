@@ -1,0 +1,21 @@
+# Ignore OpenFOAM time step directories (numerical)
+[1-9]*
+0.*
+-[0-9]*
+
+# Ignore generated mesh and geometry files
+propeller_case/constant/polyMesh/
+propeller_case/constant/extendedFeatureEdgeMesh/
+propeller_case/constant/triSurface/propeller.eMesh
+propeller_case/constant/triSurface/propeller.stl
+
+# Ignore cell/point level refinement fields written by snappyHexMesh
+propeller_case/0/cellLevel
+propeller_case/0/pointLevel
+
+# Ignore simulation post-processing results (forces, etc.)
+propeller_case/postProcessing/
+
+# Ignore solver output log files
+propeller_case/*.log
+propeller_case/log.*

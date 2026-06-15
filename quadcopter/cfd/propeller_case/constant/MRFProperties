@@ -1,0 +1,24 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  version:     2.0;
+  format:      ascii;
+  class:       dictionary;
+  object:      MRFProperties;
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      MRFProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+MRF1
+{
+    cellZone        rotorZone;
+    active          true;
+
+    origin          (0 0 0);
+    axis            (0 0 1);
+    omega           837.758; // 8000 RPM in rad/s
+}

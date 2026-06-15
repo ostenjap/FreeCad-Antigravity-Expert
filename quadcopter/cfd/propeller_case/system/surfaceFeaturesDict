@@ -1,0 +1,15 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  version:     2.0;
+  format:      ascii;
+  class:       dictionary;
+  object:      surfaceFeaturesDict;
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      surfaceFeaturesDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+surfaces (propeller.stl);

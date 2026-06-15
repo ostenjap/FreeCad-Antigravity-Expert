@@ -133,7 +133,7 @@ def run(rpm: float, thrust: float, torque: float, generate_cad: bool):
     }
 
     OUT_DATA.mkdir(parents=True, exist_ok=True)
-    rpt_path = OUT_DATA / f"propeller_analysis_{timestamp}.json"
+    rpt_path = OUT_DATA / "propeller_analysis.json"
     with open(rpt_path, "w") as f:
         json.dump(combined, f, indent=2)
     print(f"  Report saved → {rpt_path}")
